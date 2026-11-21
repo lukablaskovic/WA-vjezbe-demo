@@ -6,6 +6,7 @@ console.log(pizze);
 
 const router = express.Router();
 
+// ovo se poziva kada refresham frontend
 router.get("/", (req, res) => {
   console.log("Pozvana je GET metoda na /pizze endpointu!");
   return res.status(200).json(pizze); // 200 OK

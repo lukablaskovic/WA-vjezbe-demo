@@ -4,15 +4,16 @@ import Header from './components/Header.vue'
 
 import { getPizze, getPizzaByNaziv } from './api/pizze.js'
 
+const pizze = ref([]) // vue.js varijabla
+
 onMounted(async () => {
   // dohvati pizze sa backenda kada učitam stranicu (onMounted)
   // kada učitam stranicu, pošalji HTTP GET zahtjev na /pizze
 
-  let pizze = await getPizze()
-  console.log('Dohvaćene pizze:', pizze)
+  pizze.value = await getPizze()
+  console.log('Dohvaćene pizze:', pizze.value)
 })
 
-const pizze = ref([])
 const odabir = ref({})
 
 const velicine = ['mala', 'srednja', 'jumbo']
