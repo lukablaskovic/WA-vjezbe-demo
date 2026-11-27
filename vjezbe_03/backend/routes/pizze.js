@@ -30,23 +30,37 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:naziv", (req, res) => {
-  let naziv_param = req.params.naziv;
+router.get("/:naziv", async (req, res) => {
+  try {
+    let pizze = await fs.readFile("./data/pizze.json", "utf-8");
+    pizze = JSON.parse(pizze); // pretvaram JSON u JS
+    console.log("Dohvaćene pizze:", pizze);
 
-  // Bad Request (400): korisnik šalje podatke u krivom formatu
-  if (!isNaN(naziv_param)) {
-    return res.status(400).json({ message: "Naziv pizze mora biti string!" });
+    let naziv_param = req.params.naziv;
+
+    // Bad Request (400): korisnik šalje podatke u krivom formatu
+    if (!isNaN(naziv_param)) {
+      return res.status(400).json({ message: "Naziv pizze mora biti string!" });
+    }
+
+    let pizza = pizze.find(
+      (p) => p.naziv.toLocaleLowerCase() == naziv_param.toLocaleLowerCase(),
+    );
+
+    if (!pizza) {
+      return res.status(404).json({ message: "Tražena pizza ne postoji!" });
+    }
+
+    return res.status(200).json(pizza);
+  } catch (greskica) {
+    if (greskica) {
+      console.error("Greška prilikom čitanja datoteke pizze.json: ", greskica);
+    }
+
+    return res
+      .status(500)
+      .json({ message: "Ups nešto je pošlo po zlu!", error: greskica });
   }
-
-  let pizza = pizze.find(
-    (p) => p.naziv.toLocaleLowerCase() == naziv_param.toLocaleLowerCase(),
-  );
-
-  if (!pizza) {
-    return res.status(404).json({ message: "Tražena pizza ne postoji!" });
-  }
-
-  return res.status(200).json(pizza);
 });
 
 router.post("/", (req, res) => {
