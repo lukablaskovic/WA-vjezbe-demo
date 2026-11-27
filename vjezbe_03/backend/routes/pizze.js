@@ -1,15 +1,33 @@
 import express from "express";
+import fs from "fs/promises";
 
-import pizze from "../data/pizze.js";
+//import pizze from "../data/pizze.js";
 
-console.log(pizze);
+// zadatak je zamijeniti in-memory pristup dohvacanja pizza
+// sa pristupom preko citanja datoteke pizze.json (fs/promises)
 
 const router = express.Router();
 
 // ovo se poziva kada refresham frontend
-router.get("/", (req, res) => {
-  console.log("Pozvana je GET metoda na /pizze endpointu!");
-  return res.status(200).json(pizze); // 200 OK
+router.get("/", async (req, res) => {
+  try {
+    let pizze = await fs.readFile("./data/pizze.json", "utf-8");
+    let pizze_js = JSON.parse(pizze); // pretvaram JSON u JS
+
+    console.log("Dohvaćene pizze:", pizze_js);
+
+    // JSON.parse pretvara JSON u JS
+    // JSON.stringify pretvara JS u JSON
+    return res.status(200).json(pizze_js); // vratimo klijentu
+  } catch (greskica) {
+    if (greskica) {
+      console.error("Greška prilikom čitanja datoteke pizze.json: ", greskica);
+    }
+
+    return res
+      .status(500)
+      .json({ message: "Ups nešto je pošlo po zlu!", error: greskica });
+  }
 });
 
 router.get("/:naziv", (req, res) => {

@@ -1,6 +1,9 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
 import Header from './components/Header.vue'
+import PizzaCard from './components/PizzaCard.vue'
+import Footer from './components/Footer.vue'
+
+import { computed, ref, onMounted } from 'vue'
 
 import { getPizze, getPizzaByNaziv } from './api/pizze.js'
 
@@ -67,6 +70,27 @@ function promijeniKolicinu(pizzaId, velicina, promjena) {
 function ponistiOdabir() {
   odabir.value = {}
 }
+
+const kosarica = computed(() => {
+  const stavke = []
+
+  for (const pizza of pizze.value) {
+    for (const velicina of velicine) {
+      const kolicina = dohvatiKolicinu(pizza.id, velicina)
+      if (kolicina === 0) continue
+
+      stavke.push({
+        pizzaId: pizza.id,
+        naziv: pizza.naziv,
+        velicina,
+        kolicina,
+        cijena: pizza.cijene?.[velicina] ?? 0,
+      })
+    }
+  }
+
+  return stavke
+})
 </script>
 
 <template>
@@ -89,111 +113,15 @@ function ponistiOdabir() {
         aria-label="Ponuda pizza"
         class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
       >
-        <article
+        <PizzaCard
           v-for="pizza in pizze"
           :key="pizza.id"
-          :aria-labelledby="`pizza-${pizza.id}`"
-          class="flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition-colors"
-          :class="
-            brojOdabranih(pizza.id) > 0
-              ? 'border-orange-500 ring-1 ring-orange-500'
-              : 'border-stone-200'
-          "
-        >
-          <!-- Pizza image -->
-          <div class="relative aspect-video overflow-hidden rounded-xl bg-stone-100">
-            <img
-              v-if="pizza.image_url"
-              :src="pizza.image_url"
-              :alt="pizza.naziv"
-              class="absolute inset-0 h-full w-full object-cover"
-              loading="lazy"
-            />
-
-            <div
-              v-else
-              class="absolute inset-0 flex items-center justify-center text-sm text-stone-400"
-            >
-              Slika pizze
-            </div>
-
-            <span
-              v-if="brojOdabranih(pizza.id) > 0"
-              class="absolute top-2 right-2 rounded-full bg-orange-600 px-2.5 py-1 text-xs font-semibold text-white"
-            >
-              Odabrano: {{ brojOdabranih(pizza.id) }}
-            </span>
-          </div>
-
-          <!-- Pizza information -->
-          <div class="pt-4">
-            <h2 :id="`pizza-${pizza.id}`" class="text-lg font-semibold">
-              {{ pizza.naziv }}
-            </h2>
-
-            <p class="mt-1 text-sm text-stone-600">
-              {{ pizza.opis }}
-            </p>
-
-            <p class="mt-2 text-xs text-stone-500">
-              <span class="font-semibold">Sastojci:</span>
-              {{ pizza.sastojci?.join(', ') }}
-            </p>
-          </div>
-
-          <!-- Pizza sizes and quantities -->
-          <div class="mt-4 space-y-3 border-t border-stone-100 pt-4">
-            <div
-              v-for="velicina in velicine"
-              :key="velicina"
-              class="flex items-center justify-between gap-2"
-            >
-              <div>
-                <p class="text-sm font-medium capitalize">
-                  {{ velicina }}
-                </p>
-
-                <p class="text-sm font-semibold text-orange-700">
-                  {{ formatCijena(pizza.cijene[velicina]) }}
-                </p>
-              </div>
-
-              <div
-                role="group"
-                :aria-label="`${pizza.naziv} - ${velicina}`"
-                class="flex items-center gap-1 rounded-xl bg-stone-100 p-1"
-              >
-                <button
-                  type="button"
-                  :aria-label="`Smanji količinu: ${pizza.naziv}, ${velicina}`"
-                  :disabled="dohvatiKolicinu(pizza.id, velicina) === 0"
-                  class="flex size-9 cursor-pointer items-center justify-center rounded-lg bg-white text-xl shadow-sm transition hover:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:cursor-not-allowed disabled:opacity-35"
-                  @click="promijeniKolicinu(pizza.id, velicina, -1)"
-                >
-                  −
-                </button>
-
-                <output
-                  class="w-8 text-center text-sm font-semibold tabular-nums"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  {{ dohvatiKolicinu(pizza.id, velicina) }}
-                </output>
-
-                <button
-                  type="button"
-                  :aria-label="`Povećaj količinu: ${pizza.naziv}, ${velicina}`"
-                  :disabled="dohvatiKolicinu(pizza.id, velicina) === 99"
-                  class="flex size-9 cursor-pointer items-center justify-center rounded-lg bg-orange-600 text-xl text-white transition hover:bg-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:cursor-not-allowed disabled:opacity-35"
-                  @click="promijeniKolicinu(pizza.id, velicina, 1)"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-        </article>
+          :pizza="pizza"
+          :velicine="velicine"
+          :kolicine="odabir[pizza.id]"
+          :format-cijena="formatCijena"
+          @promijeni-kolicinu="promijeniKolicinu"
+        />
       </section>
 
       <!-- Empty state -->
@@ -201,25 +129,7 @@ function ponistiOdabir() {
         Trenutačno nema dostupnih pizza.
       </p>
 
-      <!-- Order summary -->
-      <footer
-        class="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5"
-      >
-        <div aria-live="polite" aria-atomic="true">
-          <p class="text-sm text-stone-500">Broj pizza: {{ brojPizza }}</p>
-
-          <p class="mt-1 text-xl font-bold">Ukupno: {{ formatCijena(ukupno) }}</p>
-        </div>
-
-        <button
-          type="button"
-          :disabled="brojPizza === 0"
-          class="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
-          @click="ponistiOdabir"
-        >
-          Poništi odabir
-        </button>
-      </footer>
+      <Footer :kosarica="kosarica" :format-cijena="formatCijena" @ponisti-odabir="ponistiOdabir" />
     </div>
   </main>
 </template>
